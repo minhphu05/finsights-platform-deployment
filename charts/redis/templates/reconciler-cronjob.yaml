@@ -1,0 +1,50 @@
+
+{{- $reconcilerEnabled := true }}
+{{- $reconcilerSchedule := "*/1 * * * *" }}
+{{- if and .Values.sentinel .Values.sentinel.reconciler }}
+  {{- if hasKey .Values.sentinel.reconciler "enabled" }}
+    {{- $reconcilerEnabled = .Values.sentinel.reconciler.enabled }}
+  {{- end }}
+  {{- if hasKey .Values.sentinel.reconciler "schedule" }}
+    {{- $reconcilerSchedule = .Values.sentinel.reconciler.schedule }}
+  {{- end }}
+{{- end }}
+{{- if and .Values.sentinel.enabled $reconcilerEnabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ template "common.names.fullname" . }}-reconciler
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+spec:
+  schedule: {{ $reconcilerSchedule | quote }}
+  concurrencyPolicy: Replace
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: {{ template "redis.serviceAccountName" . }}
+          restartPolicy: OnFailure
+          containers:
+            - name: reconciler
+              image: "bitnami/kubectl:latest"
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  REDIS_PASS=$(kubectl exec {{ template "common.names.fullname" . }}-node-0 -c sentinel -- cat /opt/bitnami/redis/secrets/redis-password 2>/dev/null)
+                  MASTER_HOST=$(kubectl exec {{ template "common.names.fullname" . }}-node-0 -c sentinel -- redis-cli -p 26379 -a "$REDIS_PASS" sentinel get-master-addr-by-name {{ .Values.sentinel.masterSet | default "mymaster" }} 2>/dev/null | head -n 1)
+                  if [ -n "$MASTER_HOST" ]; then
+                    if echo "$MASTER_HOST" | grep -q '\.'; then
+                      MASTER_POD=$(echo "$MASTER_HOST" | cut -d'.' -f1)
+                    else
+                      MASTER_POD="$MASTER_HOST"
+                    fi
+                    if [ -n "$MASTER_POD" ]; then
+                      kubectl label pods -n {{ include "common.names.namespace" . }} -l app.kubernetes.io/name={{ include "common.names.name" . }} isMaster- --overwrite
+                      kubectl label pod -n {{ include "common.names.namespace" . }} $MASTER_POD isMaster=true --overwrite
+                    fi
+                  fi
+{{- end }}

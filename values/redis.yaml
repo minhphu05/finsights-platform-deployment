@@ -1,0 +1,88 @@
+# ==============================================================================
+# Finsights Redis High-Availability Deployment Values
+# Cluster: 2-Node K3s (Control Plane: 103.249.117.232, Worker: 103.249.117.201)
+# Node Label: database-node=true (targets Node 2)
+# ==============================================================================
+
+architecture: replication
+
+# Global settings
+global:
+  redis:
+    password: "FinsightsRedis2026!"
+
+auth:
+  enabled: true
+  password: "FinsightsRedis2026!"
+
+# Common labels
+commonLabels:
+  app.kubernetes.io/part-of: finsights-platform
+  tier: database
+
+# Master configuration
+master:
+  nodeSelector:
+    database-node: "true"
+
+  persistence:
+    enabled: true
+    storageClass: "local-path"
+    size: 5Gi
+    accessModes:
+      - ReadWriteOnce
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+  service:
+    type: ClusterIP
+    ports:
+      redis: 6379
+
+# Replica configuration
+replica:
+  replicaCount: 1
+
+  nodeSelector:
+    database-node: "true"
+
+  persistence:
+    enabled: true
+    storageClass: "local-path"
+    size: 5Gi
+    accessModes:
+      - ReadWriteOnce
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+
+  service:
+    type: ClusterIP
+    ports:
+      redis: 6379
+
+# Prometheus Metrics Exporter (exposes Redis metrics on port 9121)
+metrics:
+  enabled: true
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+  service:
+    type: ClusterIP
+    ports:
+      metrics: 9121

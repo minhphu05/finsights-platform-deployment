@@ -1,0 +1,44 @@
+name: Lint & Validate Platform Charts
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'charts/**'
+      - 'values/**'
+      - 'applications/**'
+      - '.github/workflows/lint-test.yml'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  lint-test:
+    name: Helm Lint & Template Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.15.0'
+
+      - name: Lint Redis Chart
+        run: |
+          echo "Linting Redis Helm chart..."
+          helm lint charts/redis
+
+      - name: Validate Template Rendering (Dev & Prod Values)
+        run: |
+          echo "Testing template rendering with values/redis-dev.yaml..."
+          helm template test-dev charts/redis -f values/redis-dev.yaml > /dev/null
+
+          echo "Testing template rendering with values/redis.yaml..."
+          helm template test-prod charts/redis -f values/redis.yaml > /dev/null
+
+          echo "✅ All templates rendered successfully!"
