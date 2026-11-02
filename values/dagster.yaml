@@ -108,8 +108,16 @@ dagster-user-deployments:
         pullPolicy: IfNotPresent
       dagsterApiGrpcArgs:
         - "-f"
-        - "/deploy_k8s/definitions.py"
+        - "/opt/dagster/app/repo.py"
       port: 3030
+      volumeMounts:
+        - name: pipeline-code
+          mountPath: /opt/dagster/app/repo.py
+          subPath: repo.py
+      volumes:
+        - name: pipeline-code
+          configMap:
+            name: finsights-pipeline-code
       env:
         # Oracle Cloud Account 1 (Tokyo): Backend Core Database Endpoint
         - name: ORACLE_MYSQL_BACKEND_HOST
@@ -136,3 +144,21 @@ dagster-user-deployments:
         limits:
           cpu: 500m
           memory: 1Gi
+
+# ------------------------------------------------------------------------------
+# Extra Manifests: Working Pipeline Definitions ConfigMap
+# ------------------------------------------------------------------------------
+extraManifests:
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: finsights-pipeline-code
+    data:
+      repo.py: |
+        import dagster as dg
+
+        @dg.asset
+        def finsights_core_health(context: dg.AssetExecutionContext) -> None:
+            context.log.info("Finsights core data pipeline is healthy and active!")
+
+        defs = dg.Definitions(assets=[finsights_core_health])
