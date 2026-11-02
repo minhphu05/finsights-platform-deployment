@@ -5,18 +5,18 @@
 # ==============================================================================
 
 global:
-  postgresqlSecretName: "dagster-postgresql-secret"
+  postgresqlSecretName: "dagster-admin-postgresql-secret"
   dagsterHome: "/opt/dagster/dagster_home"
   serviceAccountName: ""
 
 # ------------------------------------------------------------------------------
 # PostgreSQL Connection (Using Shared PostgreSQL in finsights-platform)
-# Password is read from pre-existing K3s secret: dagster-postgresql-secret
+# CoreDB syncs DAGSTER_DB_PASSWORD to dagster-admin-postgresql-secret.
 # ------------------------------------------------------------------------------
 postgresql:
   enabled: false
   postgresqlHost: "postgresql.finsights-platform.svc.cluster.local"
-  postgresqlUsername: "postgres"
+  postgresqlUsername: "dagster_admin"
   postgresqlPassword: ""
   postgresqlDatabase: "dagster"
   service:
@@ -108,7 +108,7 @@ dagster-user-deployments:
         pullPolicy: IfNotPresent
       dagsterApiGrpcArgs:
         - "-f"
-        - "/example_project/example_repo/repo.py"
+        - "/deploy_k8s/definitions.py"
       port: 3030
       env:
         # Oracle Cloud Account 1 (Tokyo): Backend Core Database Endpoint

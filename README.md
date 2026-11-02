@@ -34,7 +34,7 @@ finsights-platform-deployment/
 - **Topology**: Standalone nhẹ nhàng (Requests: 100m CPU, 256Mi RAM).
 - **Node Affinity**: `nodeSelector: database-node: "true"` (Node 2).
 - **Persistence**: `15Gi` local-path storage.
-- **Tự động khởi tạo (initdb)**: Tự tạo database `dagster` và cấp quyền cho user `tools_admin` ngay lần đầu khởi động.
+- **Tự động khởi tạo (CoreDB)**: Tạo database `dagster` và login role `dagster_admin`; Dagster tự quản lý các bảng metadata của nó.
 - **Endpoints**:
   * Internal: `postgresql.finsights-platform.svc.cluster.local:5432`
   * NodePort Tailscale: `http://100.96.150.92:30432` (kết nối DBeaver từ máy Mac).
@@ -54,7 +54,7 @@ finsights-platform-deployment/
 ## 3. Thiết kế Dagster Orchestration
 
 - **Namespace**: `orchestration`.
-- **Engine Storage**: Kết nối trực tiếp vào `postgresql.finsights-platform.svc.cluster.local:5432` (database: `dagster`).
+- **Engine Storage**: Kết nối trực tiếp vào `postgresql.finsights-platform.svc.cluster.local:5432` (database: `dagster`, user: `dagster_admin`). Workflow CoreDB đồng bộ `DAGSTER_DB_PASSWORD` vào Kubernetes Secret `orchestration/dagster-admin-postgresql-secret` để chart Dagster sử dụng.
 - **Run Launcher**: `K8sRunLauncher` tự tạo Job và tự giải phóng tài nguyên.
 - **Web UI & Ingress**: Ingress-Nginx nhận `dagster.finsights.biz`, NodePort `31882`.
 - **Pipelines**: Đọc/ghi dữ liệu nghiệp vụ vào cả 2 cụm MySQL Oracle Cloud (Tokyo và Singapore).
