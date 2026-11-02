@@ -7,6 +7,15 @@
 architecture: standalone
 
 # ------------------------------------------------------------------------------
+# PostgreSQL Image Configuration
+# ------------------------------------------------------------------------------
+image:
+  registry: docker.io
+  repository: bitnamilegacy/postgresql
+  tag: "16.2.0"
+  pullPolicy: IfNotPresent
+
+# ------------------------------------------------------------------------------
 # Authentication & Credentials (Admin Only)
 # ------------------------------------------------------------------------------
 auth:
@@ -61,6 +70,11 @@ primary:
 # ------------------------------------------------------------------------------
 metrics:
   enabled: true
+  image:
+    registry: docker.io
+    repository: bitnami/postgres-exporter
+    tag: "latest"
+    pullPolicy: IfNotPresent
   resources:
     requests:
       cpu: 20m

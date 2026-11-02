@@ -106,7 +106,10 @@ dagster-user-deployments:
         repository: "docker.io/dagster/user-code-example"
         tag: "1.13.27"
         pullPolicy: IfNotPresent
-      port: 4000
+      dagsterApiGrpcArgs:
+        - "-f"
+        - "/example_project/example_repo/repo.py"
+      port: 3030
       env:
         # Oracle Cloud Account 1 (Tokyo): Backend Core Database Endpoint
         - name: ORACLE_MYSQL_BACKEND_HOST
