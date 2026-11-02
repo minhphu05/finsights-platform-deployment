@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: finsights-backend
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: finsights-platform
+    tier: application
+spec:
+  project: finsights-platform
+  source:
+    repoURL: https://github.com/minhphu05/finsights-backend.git
+    targetRevision: main
+    path: deploy/helm
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: finsights-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

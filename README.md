@@ -13,11 +13,14 @@ finsights-platform-deployment/
 ├── applications/                    # Khai báo ArgoCD Application (Root App tự động kéo về)
 │   ├── redis.yaml                   # Khai báo triển khai Redis HA vào cụm K3s
 │   ├── postgresql.yaml              # Khai báo triển khai Shared PostgreSQL cho Tools
-│   └── dagster.yaml                 # Khai báo triển khai Dagster Orchestration & Pipelines
+│   ├── dagster.yaml                 # Khai báo triển khai Dagster Orchestration & Pipelines
+│   ├── rabbitmq.yaml                # Khai báo broker cho backend services
+│   └── finsights-backend.yaml       # Trỏ Argo CD tới Helm chart trong finsights-backend
 ├── charts/                          # Danh mục các Helm charts nội bộ
 │   ├── redis/                       # Bitnami Redis High-Availability Chart chuẩn
 │   ├── postgresql/                  # Bitnami PostgreSQL 16 Chart chuẩn (Shared Tools DB)
-│   └── dagster/                     # Dagster Production Chart (Webserver, Daemon, User Code)
+│   ├── dagster/                     # Dagster Production Chart (Webserver, Daemon, User Code)
+│   └── rabbitmq/                    # Single-node broker cho backend services
 └── values/                          # File values tùy biến theo từng môi trường
     ├── redis-dev.yaml               # Cấu hình Standalone (tiết kiệm tài nguyên cho dev)
     ├── redis.yaml                   # Cấu hình Production Replication (HA, local-path, database-node=true)
@@ -75,3 +78,6 @@ ArgoCD sẽ tự động triển khai theo thứ tự:
 1. `applications/redis.yaml` ➡️ Redis HA (namespace `finsights-platform`)
 2. `applications/postgresql.yaml` ➡️ PostgreSQL Tools (namespace `finsights-platform`)
 3. `applications/dagster.yaml` ➡️ Dagster Platform (namespace `orchestration`)
+4. `applications/finsights-backend.yaml` ➡️ Backend API gateway và các service nội bộ (namespace `finsights-platform`)
+
+Backend images được build và push lên GHCR bởi workflow trong repo `finsights-backend`. Workflow cập nhật tag SHA trong Helm values của repo backend; Argo CD theo dõi tag đó và rollout các Deployment. Secret runtime của MySQL, JWT và RabbitMQ được quản lý riêng trong Kubernetes, không lưu tại repo này.
