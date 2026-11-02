@@ -1,0 +1,98 @@
+# ==============================================================================
+# Finsights Platform Deployment - RabbitMQ Message Broker
+# Message queue & event broker for asynchronous processing
+# Cluster: 2-Node K3s (Control Plane: Node 1, Worker: Node 2)
+# Node Label: database-node=true (targets Node 2)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Global Security Settings
+# ------------------------------------------------------------------------------
+global:
+  security:
+    allowInsecureImages: true
+
+# ------------------------------------------------------------------------------
+# Container Image Configuration
+# ------------------------------------------------------------------------------
+image:
+  registry: docker.io
+  repository: bitnamilegacy/rabbitmq
+  tag: "4.1.3"
+  pullPolicy: IfNotPresent
+
+# ------------------------------------------------------------------------------
+# Authentication & Credentials
+# ------------------------------------------------------------------------------
+auth:
+  username: "admin"
+  existingPasswordSecret: "rabbitmq-credentials"
+  existingSecretPasswordKey: "rabbitmq-password"
+  existingErlangSecret: "rabbitmq-credentials"
+  existingSecretErlangKey: "rabbitmq-erlang-cookie"
+
+# ------------------------------------------------------------------------------
+# Cluster / Replica Sizing
+# ------------------------------------------------------------------------------
+replicaCount: 1
+
+# ------------------------------------------------------------------------------
+# Node Scheduling & Placement
+# ------------------------------------------------------------------------------
+nodeSelector:
+  database-node: "true"
+
+# ------------------------------------------------------------------------------
+# Resource Management
+# ------------------------------------------------------------------------------
+resourcesPreset: "none"
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+# ------------------------------------------------------------------------------
+# Persistence via K3s Local-Path Provisioner (Node 2 SSD)
+# ------------------------------------------------------------------------------
+persistence:
+  enabled: true
+  storageClass: "local-path"
+  size: 10Gi
+  accessModes:
+    - ReadWriteOnce
+
+# ------------------------------------------------------------------------------
+# Network Service & Ports
+# Intra-cluster: rabbitmq.finsights-platform.svc.cluster.local:5672 (AMQP)
+# Management UI NodePort: 31672 (accessible via Tailscale 100.96.150.92:31672)
+# ------------------------------------------------------------------------------
+service:
+  type: NodePort
+  ports:
+    amqp: 5672
+    manager: 15672
+  nodePorts:
+    manager: 31672
+    amqp: 30672
+
+# ------------------------------------------------------------------------------
+# Plugins
+# ------------------------------------------------------------------------------
+plugins: "rabbitmq_management rabbitmq_peer_discovery_k8s"
+
+# ------------------------------------------------------------------------------
+# Tuning Configuration
+# ------------------------------------------------------------------------------
+extraConfiguration: |
+  vm_memory_high_watermark.relative = 0.6
+  disk_free_limit.relative = 1.0
+
+# ------------------------------------------------------------------------------
+# Prometheus Metrics
+# ------------------------------------------------------------------------------
+metrics:
+  enabled: true
+  plugins: "rabbitmq_prometheus"

@@ -39,6 +39,9 @@ jobs:
           echo "Linting Dagster Helm chart..."
           helm lint charts/dagster -f values/dagster.yaml
 
+          echo "Linting RabbitMQ Helm chart..."
+          helm lint charts/rabbitmq -f values/rabbitmq.yaml
+
       - name: Validate Template Rendering
         run: |
           echo "Testing Redis template rendering with values/redis.yaml..."
@@ -49,5 +52,8 @@ jobs:
 
           echo "Testing Dagster template rendering with values/dagster.yaml..."
           helm template test-dagster charts/dagster -f values/dagster.yaml --namespace orchestration > /dev/null
+
+          echo "Testing RabbitMQ template rendering with values/rabbitmq.yaml..."
+          helm template test-rabbitmq charts/rabbitmq -f values/rabbitmq.yaml --namespace finsights-platform > /dev/null
 
           echo "✅ All charts linted and templates rendered successfully!"

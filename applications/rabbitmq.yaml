@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rabbitmq
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: finsights-platform
+    tier: messaging
+spec:
+  project: finsights-platform
+  source:
+    repoURL: https://github.com/minhphu05/finsights-platform-deployment.git
+    targetRevision: main
+    path: charts/rabbitmq
+    helm:
+      valueFiles:
+        - ../../values/rabbitmq.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: finsights-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - CreateNamespace=true
