@@ -1,0 +1,70 @@
+# ==============================================================================
+# Finsights Platform Deployment - Shared PostgreSQL for Tools
+# Clean, empty PostgreSQL instance for internal platform tools
+# Databases will be provisioned by finsights-coredb repository
+# ==============================================================================
+
+architecture: standalone
+
+# ------------------------------------------------------------------------------
+# Authentication & Credentials (Admin Only)
+# ------------------------------------------------------------------------------
+auth:
+  enablePostgresUser: true
+  existingSecret: "postgresql-credentials"
+  secretKeys:
+    adminPasswordKey: "postgres-password"
+  # Default system database for admin and metrics exporter
+  username: ""
+  password: ""
+  database: "postgres"
+
+# ------------------------------------------------------------------------------
+# Primary Instance Configuration
+# ------------------------------------------------------------------------------
+primary:
+  # Schedule onto Node 2 (database-node=true) alongside Redis
+  nodeSelector:
+    database-node: "true"
+
+  # Persistent Storage via K3s Local-Path Provisioner (60GB SSD disk on Node 2)
+  persistence:
+    enabled: true
+    storageClass: "local-path"
+    size: 15Gi
+
+  # Lightweight resource allocation
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+  # Service: ClusterIP for intra-cluster traffic + NodePort 30432 for Tailscale management
+  service:
+    type: NodePort
+    ports:
+      postgresql: 5432
+    nodePorts:
+      postgresql: 30432
+
+  extendedConfiguration: |
+    max_connections = 150
+    shared_buffers = 128MB
+    work_mem = 4MB
+    maintenance_work_mem = 64MB
+
+# ------------------------------------------------------------------------------
+# Prometheus Metrics Exporter (Observability)
+# ------------------------------------------------------------------------------
+metrics:
+  enabled: true
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi

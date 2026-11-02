@@ -1,0 +1,135 @@
+# ==============================================================================
+# Finsights Platform Deployment - Dagster Values
+# Orchestration, AI Pipelines, and Data Processing
+# Connected to Shared PostgreSQL Tools Database in finsights-platform namespace
+# ==============================================================================
+
+global:
+  postgresqlSecretName: "dagster-postgresql-secret"
+  dagsterHome: "/opt/dagster/dagster_home"
+  serviceAccountName: ""
+
+# ------------------------------------------------------------------------------
+# PostgreSQL Connection (Using Shared PostgreSQL in finsights-platform)
+# Password is read from pre-existing K3s secret: dagster-postgresql-secret
+# ------------------------------------------------------------------------------
+postgresql:
+  enabled: false
+  postgresqlHost: "postgresql.finsights-platform.svc.cluster.local"
+  postgresqlUsername: "postgres"
+  postgresqlPassword: ""
+  postgresqlDatabase: "dagster"
+  service:
+    port: 5432
+
+generatePostgresqlPasswordSecret: false
+
+# ------------------------------------------------------------------------------
+# Telemetry
+# ------------------------------------------------------------------------------
+telemetry:
+  enabled: false
+
+# ------------------------------------------------------------------------------
+# Dagster Webserver (Web UI & GraphQL API)
+# ------------------------------------------------------------------------------
+dagsterWebserver:
+  replicaCount: 1
+  service:
+    type: NodePort
+    port: 80
+    nodePort: 31882
+  resources:
+    requests:
+      cpu: 150m
+      memory: 384Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# ------------------------------------------------------------------------------
+# Ingress Configuration (Ingress-Nginx)
+# ------------------------------------------------------------------------------
+ingress:
+  enabled: true
+  ingressClassName: "nginx"
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+  dagsterWebserver:
+    host: "dagster.finsights.biz"
+    path: "/"
+    pathType: "Prefix"
+
+# ------------------------------------------------------------------------------
+# Dagster Daemon (Schedules, Sensors, Run Queue)
+# ------------------------------------------------------------------------------
+dagsterDaemon:
+  enabled: true
+  runMonitoring:
+    enabled: true
+    startTimeoutSeconds: 120
+    pollIntervalSeconds: 30
+  resources:
+    requests:
+      cpu: 150m
+      memory: 384Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# ------------------------------------------------------------------------------
+# Run Launcher (Kubernetes Native Job Execution)
+# ------------------------------------------------------------------------------
+runLauncher:
+  type: K8sRunLauncher
+  config:
+    k8sRunLauncher:
+      jobNamespace: "orchestration"
+      loadInclusterConfig: true
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          cpu: "1"
+          memory: 2Gi
+
+# ------------------------------------------------------------------------------
+# User Code Deployments (AI Services & Pipelines Repository)
+# ------------------------------------------------------------------------------
+dagster-user-deployments:
+  enabled: true
+  enableSubchart: true
+  deployments:
+    - name: "finsights-ai-pipelines"
+      image:
+        repository: "docker.io/dagster/user-code-example"
+        tag: "1.13.27"
+        pullPolicy: IfNotPresent
+      port: 4000
+      env:
+        # Oracle Cloud Account 1 (Tokyo): Backend Core Database Endpoint
+        - name: ORACLE_MYSQL_BACKEND_HOST
+          value: "161.33.181.173"
+        - name: ORACLE_MYSQL_BACKEND_PORT
+          value: "3306"
+        # Oracle Cloud Account 2 (Singapore): AI Services & Financial Analytics DB Endpoint
+        - name: ORACLE_MYSQL_AI_HOST
+          value: "129.221.137.201"
+        - name: ORACLE_MYSQL_AI_PORT
+          value: "3306"
+        # In-Cluster Redis HA Cache Endpoint
+        - name: REDIS_HOST
+          value: "redis-master.finsights-platform.svc.cluster.local"
+        - name: REDIS_PORT
+          value: "6379"
+      # Passwords injected securely from pre-existing K3s secret
+      envSecrets:
+        - name: "dagster-pipeline-secrets"
+      resources:
+        requests:
+          cpu: 150m
+          memory: 384Mi
+        limits:
+          cpu: 500m
+          memory: 1Gi

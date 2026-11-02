@@ -28,17 +28,26 @@ jobs:
         with:
           version: 'v3.15.0'
 
-      - name: Lint Redis Chart
+      - name: Lint Charts
         run: |
           echo "Linting Redis Helm chart..."
           helm lint charts/redis
 
-      - name: Validate Template Rendering (Dev & Prod Values)
+          echo "Linting PostgreSQL Helm chart..."
+          helm lint charts/postgresql -f values/postgresql.yaml
+
+          echo "Linting Dagster Helm chart..."
+          helm lint charts/dagster -f values/dagster.yaml
+
+      - name: Validate Template Rendering
         run: |
-          echo "Testing template rendering with values/redis-dev.yaml..."
-          helm template test-dev charts/redis -f values/redis-dev.yaml > /dev/null
+          echo "Testing Redis template rendering with values/redis.yaml..."
+          helm template test-redis charts/redis -f values/redis.yaml > /dev/null
 
-          echo "Testing template rendering with values/redis.yaml..."
-          helm template test-prod charts/redis -f values/redis.yaml > /dev/null
+          echo "Testing PostgreSQL template rendering with values/postgresql.yaml..."
+          helm template test-postgres charts/postgresql -f values/postgresql.yaml --namespace finsights-platform > /dev/null
 
-          echo "✅ All templates rendered successfully!"
+          echo "Testing Dagster template rendering with values/dagster.yaml..."
+          helm template test-dagster charts/dagster -f values/dagster.yaml --namespace orchestration > /dev/null
+
+          echo "✅ All charts linted and templates rendered successfully!"

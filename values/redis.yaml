@@ -9,11 +9,13 @@ architecture: replication
 # Global settings
 global:
   redis:
-    password: "FinsightsRedis2026!"
+    existingSecret: "redis-credentials"
+    existingSecretPasswordKey: "redis-password"
 
 auth:
   enabled: true
-  password: "FinsightsRedis2026!"
+  existingSecret: "redis-credentials"
+  existingSecretPasswordKey: "redis-password"
 
 # Common labels
 commonLabels:
