@@ -86,21 +86,86 @@ runLauncher:
     k8sRunLauncher:
       jobNamespace: "orchestration"
       loadInclusterConfig: true
+      imagePullPolicy: "Always"
+      envSecrets:
+        - name: "dagster-pipeline-secrets"
+        - name: "oci-object-storage-credentials"
+      volumes:
+        - name: ca-certs
+          configMap:
+            name: mysql-ca-certificates
+      volumeMounts:
+        - name: ca-certs
+          mountPath: /opt/dagster/certs
+          readOnly: true
       resources:
         requests:
-          cpu: 200m
-          memory: 512Mi
+          cpu: 100m
+          memory: 256Mi
         limits:
-          cpu: "1"
-          memory: 2Gi
+          cpu: 500m
+          memory: 1Gi
 
 # ------------------------------------------------------------------------------
-# User Code Deployments (AI Services & Pipelines Repository)
+# User Code Deployments (AI Services & Scraping Pipelines Repository)
 # ------------------------------------------------------------------------------
 dagster-user-deployments:
   enabled: true
   enableSubchart: true
   deployments:
+    - name: "finsights-data-scraping"
+      image:
+        repository: "ghcr.io/minhphu05/fingsights-data-scraping"
+        tag: "latest"
+        pullPolicy: Always
+      dagsterApiGrpcArgs:
+        - "-h"
+        - "0.0.0.0"
+        - "-p"
+        - "3030"
+        - "-m"
+        - "src.finsights_scraping.orchestration.definitions"
+      port: 3030
+      volumeMounts:
+        - name: ca-certs
+          mountPath: /opt/dagster/certs
+          readOnly: true
+      volumes:
+        - name: ca-certs
+          configMap:
+            name: mysql-ca-certificates
+      env:
+        - name: ORACLE_MYSQL_BACKEND_HOST
+          value: "161.33.181.173"
+        - name: ORACLE_MYSQL_BACKEND_PORT
+          value: "3306"
+        - name: ORACLE_MYSQL_AI_HOST
+          value: "129.221.137.201"
+        - name: ORACLE_MYSQL_AI_PORT
+          value: "3306"
+        - name: NEWS_DATABASE_URL
+          value: "mysql+pymysql://finsights_news_app:$(ORACLE_MYSQL_BACKEND_PASSWORD)@161.33.181.173:3306/finsights_news?charset=utf8mb4"
+        - name: MARKET_DATABASE_URL
+          value: "mysql+pymysql://finsights_market_app:$(ORACLE_MYSQL_BACKEND_PASSWORD)@161.33.181.173:3306/finsights_market?charset=utf8mb4"
+        - name: SCRAPING_DATABASE_URL
+          value: "mysql+pymysql://finsights_scraping_app:$(ORACLE_MYSQL_AI_PASSWORD)@129.221.137.201:3306/finsights_scraping?charset=utf8mb4"
+        - name: MYSQL_NODE_1_TLS_CA_FILE
+          value: "/opt/dagster/certs/mysql-node-1-ca.pem"
+        - name: MYSQL_NODE_2_TLS_CA_FILE
+          value: "/opt/dagster/certs/mysql-node-2-ca.pem"
+        - name: ENABLE_OCI_MEDIA_UPLOAD
+          value: "true"
+      envSecrets:
+        - name: "dagster-pipeline-secrets"
+        - name: "oci-object-storage-credentials"
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 500m
+          memory: 768Mi
+
     - name: "finsights-ai-pipelines"
       image:
         repository: "docker.io/dagster/user-code-example"
@@ -146,7 +211,7 @@ dagster-user-deployments:
           memory: 1Gi
 
 # ------------------------------------------------------------------------------
-# Extra Manifests: Working Pipeline Definitions ConfigMap
+# Extra Manifests: Working Pipeline Definitions & CA Certificates ConfigMap
 # ------------------------------------------------------------------------------
 extraManifests:
   - apiVersion: v1
@@ -162,3 +227,49 @@ extraManifests:
             context.log.info("Finsights core data pipeline is healthy and active!")
 
         defs = dg.Definitions(assets=[finsights_core_health])
+
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: mysql-ca-certificates
+    data:
+      mysql-node-1-ca.pem: |
+        -----BEGIN CERTIFICATE-----
+        MIIDGTCCAgGgAwIBAgIUftOK3ZzedLegTTVVFf+KWN4GsS8wDQYJKoZIhvcNAQEL
+        BQAwHDEaMBgGA1UEAwwRTXlTUUxfRW5kcG9pbnRfQ0EwHhcNMjYxMTAxMTgyNzIy
+        WhcNMjkxMDMxMTgyNzIyWjAcMRowGAYDVQQDDBFNeVNRTF9FbmRwb2ludF9DQTCC
+        ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANwF+DmJdMXQT8Uslq/+dTnN
+        l4PlrdpH06HG2TKHgPp+05pb3UlyTecvbfFzMXrN3rQnBsXMPn1QZE88eTEt34T9
+        ec0IncysQv0X2MgTC1E3XuwgQfc+9nDnamA6Lza6k98LXwum8ecyoAb8PMVstjxP
+        MOCDm1kuJheDly32rDRUnEpkTUfBTk0epTvje7q6OkRqQIYtScqyWhGevOVXBF56
+        bU/br2ga9Y35mOxt6ae6hZnd1RbXQtazN7DLbUd+t5Fz/kBwLP4HyXQiqwMpmPcV
+        FbVqv1rcrymOFJ5hOgsdhLdxFnAk/CZbbvpeGKXedqKEhC3kcKkM38aO+rW9ta0C
+        AwEAAaNTMFEwHQYDVR0OBBYEFF7WXvmlOakI/KYIfngdqQXAgUsuMB8GA1UdIwQY
+        MBaAFF7WXvmlOakI/KYIfngdqQXAgUsuMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZI
+        hvcNAQELBQADggEBAJcN0aHpD5pPBE1mwBKJ6PaWpTsa1lZIGJW4nnj7Wfomjnu1
+        VLRW53q6L8pDIcX+LPDg+zGGm8ckrlxBE2sPgH0YVbBo1vj67eEyy4PGNMtJrsAg
+        /w/8xX8s1335V3ug2mNDnWmS1XcCZq5ZbK98mQYF8Vak08rapqb3WWytDBwCCTJ5
+        EY8N+zYQgcUsdSPWsdzvjfMxM04xica9EBsqlV+3QKYwtxumVOjoJQ8MuaSb3WJA
+        Pq7J4KKUc3TCaRgGvRWLQtuxSZey4nanMFsXFF2SOdxdTr6Fon5l4tKB+KnmZ0DX
+        gx6IHUcXDevevzW4hET8uQEHsUfaYBr70F74X0s=
+        -----END CERTIFICATE-----
+      mysql-node-2-ca.pem: |
+        -----BEGIN CERTIFICATE-----
+        MIIDGTCCAgGgAwIBAgIUdLrzdi/yDYvZzIir8nvO3WkKmTQwDQYJKoZIhvcNAQEL
+        BQAwHDEaMBgGA1UEAwwRTXlTUUxfRW5kcG9pbnRfQ0EwHhcNMjYxMTAxMTgzMDEz
+        WhcNMjkxMDMxMTgzMDEzWjAcMRowGAYDVQQDDBFNeVNRTF9FbmRwb2ludF9DQTCC
+        ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAM6wATbx3HIaAJveprt2vpPU
+        qyMTZJi+69Y0SwulAJks2O/l+ZtsGycyaPLmZG4imhM5qnrKMuTOV/GlzrHP2L8c
+        Qhb8Xj/UO8/k6rbFOVQZZvc4YFojgLXpe/g8glsuwoDGHXgCpvEW26blyzRVz3hg
+        nIpW5IaGbQn60Ca/2dxlnWyu7ugDb0WjCksIhhbOShPsNsK17jI5JGH8Xunh99i3
+        0nw2QlQg6L+qc9YPW0SLJPtSWkNGxjmD6kcUswzmlAdMHGRvNf+ytGU2kWUW6CFZ
+        vGMifFAwCGCswlqhE2fjJHFdsUEyaGje/h/tD9kMIIVbgXZP8NfdxMUERf8sXa0C
+        AwEAAaNTMFEwHQYDVR0OBBYEFNo5ms2hfJj6AKKIzF49qc9dkTARMB8GA1UdIwQY
+        MBaAFNo5ms2hfJj6AKKIzF49qc9dkTARMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZI
+        hvcNAQELBQADggEBAHSKLoBiJIxOChBZ+jCCOGXQ9Bprw1aYGrXQDtCZlAsRdYLj
+        N+DIS4geE3jBFIqnpgpFACrj6oOeOdS0JTODBiBO5LMuiXwfrli/80dc2djpHXR7
+        BfjtWN2W5Hzf+HHLfwXWHKsK4UihHSfE6SpDm+iDgaQfdflQUl4a2v6t4EB8ELxJ
+        cZFIbNv3M8dpxPMMFNzGNp72sR/Uz9til0ZtOlO7+jsd6SdLEi+M88wwt2UhCZ9x
+        oXviDFofN6oDPRPxq8gHA9YcivFrOPVHmP8A2iL9ORbDNPPb9aCUWJPKhTomBxmy
+        KNygP407G8YR5WBz7wVMmmR5/tg8g0V5UWkfsVE=
+        -----END CERTIFICATE-----
