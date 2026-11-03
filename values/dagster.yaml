@@ -87,6 +87,10 @@ runLauncher:
       jobNamespace: "orchestration"
       loadInclusterConfig: true
       imagePullPolicy: "Always"
+      failPodOnRunFailure: false
+      runK8sConfig:
+        jobSpecConfig:
+          ttlSecondsAfterFinished: 86400
       envSecrets:
         - name: "dagster-pipeline-secrets"
         - name: "oci-object-storage-credentials"
