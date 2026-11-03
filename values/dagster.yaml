@@ -144,11 +144,11 @@ dagster-user-deployments:
         - name: ORACLE_MYSQL_AI_PORT
           value: "3306"
         - name: NEWS_DATABASE_URL
-          value: "mysql+pymysql://finsights_news_app:$(ORACLE_MYSQL_BACKEND_PASSWORD)@161.33.181.173:3306/finsights_news?charset=utf8mb4"
+          value: "mysql+pymysql://finsights_news_app:$(MYSQL_NEWS_APP_PASSWORD)@161.33.181.173:3306/finsights_news?charset=utf8mb4"
         - name: MARKET_DATABASE_URL
-          value: "mysql+pymysql://finsights_market_app:$(ORACLE_MYSQL_BACKEND_PASSWORD)@161.33.181.173:3306/finsights_market?charset=utf8mb4"
+          value: "mysql+pymysql://finsights_market_app:$(MYSQL_MARKET_APP_PASSWORD)@161.33.181.173:3306/finsights_market?charset=utf8mb4"
         - name: SCRAPING_DATABASE_URL
-          value: "mysql+pymysql://finsights_scraping_app:$(ORACLE_MYSQL_AI_PASSWORD)@129.221.137.201:3306/finsights_scraping?charset=utf8mb4"
+          value: "mysql+pymysql://finsights_scraping_app:$(MYSQL_SCRAPING_APP_PASSWORD)@129.221.137.201:3306/finsights_scraping?charset=utf8mb4"
         - name: MYSQL_NODE_1_TLS_CA_FILE
           value: "/opt/dagster/certs/mysql-node-1-ca.pem"
         - name: MYSQL_NODE_2_TLS_CA_FILE
