@@ -140,21 +140,15 @@ dagster-user-deployments:
             name: mysql-ca-certificates
       env:
         - name: ORACLE_MYSQL_BACKEND_HOST
-          value: "161.33.181.173"
+          value: "129.221.137.201"
         - name: ORACLE_MYSQL_BACKEND_PORT
           value: "3306"
-        - name: ORACLE_MYSQL_AI_HOST
-          value: "129.221.137.201"
-        - name: ORACLE_MYSQL_AI_PORT
-          value: "3306"
-        - name: NEWS_DATABASE_URL
-          value: "mysql+pymysql://finsights_news_app:$(MYSQL_NEWS_APP_PASSWORD)@161.33.181.173:3306/finsights_news?charset=utf8mb4"
         - name: MARKET_DATABASE_URL
-          value: "mysql+pymysql://finsights_market_app:$(MYSQL_MARKET_APP_PASSWORD)@161.33.181.173:3306/finsights_market?charset=utf8mb4"
+          value: "mysql+pymysql://finsights_market_data_app:$(MYSQL_SCRAPING_APP_PASSWORD)@129.221.137.201:3306/finsights_market_data?charset=utf8mb4"
+        - name: NEWS_DATABASE_URL
+          value: "mysql+pymysql://finsights_news_app:$(MYSQL_NEWS_APP_PASSWORD)@129.221.137.201:3306/finsights_news?charset=utf8mb4"
         - name: SCRAPING_DATABASE_URL
           value: "mysql+pymysql://finsights_scraping_app:$(MYSQL_SCRAPING_APP_PASSWORD)@129.221.137.201:3306/finsights_scraping?charset=utf8mb4"
-        - name: MYSQL_NODE_1_TLS_CA_FILE
-          value: "/opt/dagster/certs/mysql-node-1-ca.pem"
         - name: MYSQL_NODE_2_TLS_CA_FILE
           value: "/opt/dagster/certs/mysql-node-2-ca.pem"
         - name: ENABLE_OCI_MEDIA_UPLOAD
@@ -188,14 +182,14 @@ dagster-user-deployments:
           configMap:
             name: finsights-pipeline-code
       env:
-        # Oracle Cloud Account 1 (Tokyo): Backend Core Database Endpoint
+        # Oracle Cloud Account 2 (Singapore): Backend Core Database Endpoint
         - name: ORACLE_MYSQL_BACKEND_HOST
-          value: "161.33.181.173"
+          value: "129.221.137.201"
         - name: ORACLE_MYSQL_BACKEND_PORT
           value: "3306"
-        # Oracle Cloud Account 2 (Singapore): AI Services & Financial Analytics DB Endpoint
+        # Oracle Cloud Account 1 (Tokyo): AI Services DB Endpoint
         - name: ORACLE_MYSQL_AI_HOST
-          value: "129.221.137.201"
+          value: "161.33.181.173"
         - name: ORACLE_MYSQL_AI_PORT
           value: "3306"
         # In-Cluster Redis HA Cache Endpoint

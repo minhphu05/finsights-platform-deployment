@@ -48,8 +48,8 @@ finsights-platform-deployment/
 - **Endpoint**: `redis-master.finsights-platform.svc.cluster.local:6379`.
 
 ### 2.3. Oracle Cloud Databases (External PaaS)
-- **Account 1 (Tokyo - `161.33.181.173:3306`)**: **Core Website Backend Database** (Users, Auth, Portfolios, Transactions).
-- **Account 2 (Singapore - `129.221.137.201:3306`)**: **AI Backend Database** (Chat sessions, Chat history, Prompt logs, Agent states).
+- **Account 1 (Tokyo - `161.33.181.173:3306`)**: **AI-service-owned MySQL databases** (including `finsights_ai`).
+- **Account 2 (Singapore - `129.221.137.201:3306`)**: **All backend databases and data**, including auth, user, market/news sources, financial facts, assets, scraping history, and API read models.
 - **Autonomous DB 23ai (`finsightsvec1` / `finsightsvec2`)**: AI Vector Search Embeddings.
 
 ---
