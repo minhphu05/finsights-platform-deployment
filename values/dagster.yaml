@@ -94,6 +94,14 @@ runLauncher:
       envSecrets:
         - name: "dagster-pipeline-secrets"
         - name: "oci-object-storage-credentials"
+        - name: "finsights-embeddings-postgresql-secret"
+      envVars:
+        - "MYSQL_SOURCE_READONLY_DSN=mysql+aiomysql://finsights_ai_ro@129.221.137.201:3306/finsights_news?charset=utf8mb4"
+        - "MYSQL_SOURCE_TLS_CA=/opt/dagster/certs/mysql-node-2-ca.pem"
+        - "MYSQL_TLS=true"
+        - "MYSQL_TLS_SERVER_NAME=MySQL_Endpoint_Server"
+        - "POSTGRES_RAG_DSN=postgresql+psycopg://finsights_embeddings_app@postgresql.finsights-platform.svc.cluster.local:5432/finsights_embeddings?sslmode=prefer"
+        - "CLOUDFLARE_ACCOUNT_ID=0fa8bb51f0c7cbecf930dbfade8287c2"
       volumes:
         - name: ca-certs
           configMap:
@@ -166,40 +174,39 @@ dagster-user-deployments:
 
     - name: "finsights-ai-pipelines"
       image:
-        repository: "docker.io/dagster/user-code-example"
-        tag: "1.13.27"
-        pullPolicy: IfNotPresent
+        repository: "ghcr.io/minhphu05/finsights-ai-service"
+        tag: "latest"
+        pullPolicy: Always
       dagsterApiGrpcArgs:
-        - "-f"
-        - "/opt/dagster/app/repo.py"
+        - "-m"
+        - "orchestration.definitions"
       port: 3030
       volumeMounts:
-        - name: pipeline-code
-          mountPath: /opt/dagster/app/repo.py
-          subPath: repo.py
+        - name: ca-certs
+          mountPath: /opt/dagster/certs
+          readOnly: true
       volumes:
-        - name: pipeline-code
+        - name: ca-certs
           configMap:
-            name: finsights-pipeline-code
+            name: mysql-ca-certificates
       env:
-        # Oracle Cloud Account 2 (Singapore): Backend Core Database Endpoint
-        - name: ORACLE_MYSQL_BACKEND_HOST
-          value: "129.221.137.201"
-        - name: ORACLE_MYSQL_BACKEND_PORT
-          value: "3306"
-        # Oracle Cloud Account 1 (Tokyo): AI Services DB Endpoint
-        - name: ORACLE_MYSQL_AI_HOST
-          value: "161.33.181.173"
-        - name: ORACLE_MYSQL_AI_PORT
-          value: "3306"
-        # In-Cluster Redis HA Cache Endpoint
-        - name: REDIS_HOST
-          value: "redis-master.finsights-platform.svc.cluster.local"
-        - name: REDIS_PORT
-          value: "6379"
-      # Passwords injected securely from pre-existing K3s secret
+        - name: MYSQL_SOURCE_READONLY_DSN
+          value: "mysql+aiomysql://finsights_ai_ro@129.221.137.201:3306/finsights_news?charset=utf8mb4"
+        - name: MYSQL_SOURCE_TLS_CA
+          value: "/opt/dagster/certs/mysql-node-2-ca.pem"
+        - name: MYSQL_TLS
+          value: "true"
+        - name: MYSQL_TLS_SERVER_NAME
+          value: "MySQL_Endpoint_Server"
+        - name: POSTGRES_RAG_DSN
+          value: "postgresql+psycopg://finsights_embeddings_app@postgresql.finsights-platform.svc.cluster.local:5432/finsights_embeddings?sslmode=prefer"
+        - name: CLOUDFLARE_ACCOUNT_ID
+          value: "0fa8bb51f0c7cbecf930dbfade8287c2"
+        - name: NEWS_EMBEDDING_MODEL
+          value: "@cf/baai/bge-m3"
       envSecrets:
         - name: "dagster-pipeline-secrets"
+        - name: "finsights-embeddings-postgresql-secret"
       resources:
         requests:
           cpu: 150m
@@ -209,23 +216,9 @@ dagster-user-deployments:
           memory: 1Gi
 
 # ------------------------------------------------------------------------------
-# Extra Manifests: Working Pipeline Definitions & CA Certificates ConfigMap
+# Extra Manifest: MySQL CA certificates used by the scraping and AI pipelines
 # ------------------------------------------------------------------------------
 extraManifests:
-  - apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: finsights-pipeline-code
-    data:
-      repo.py: |
-        import dagster as dg
-
-        @dg.asset
-        def finsights_core_health(context: dg.AssetExecutionContext) -> None:
-            context.log.info("Finsights core data pipeline is healthy and active!")
-
-        defs = dg.Definitions(assets=[finsights_core_health])
-
   - apiVersion: v1
     kind: ConfigMap
     metadata:
