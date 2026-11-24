@@ -7,12 +7,13 @@
 architecture: standalone
 
 # ------------------------------------------------------------------------------
-# PostgreSQL Image Configuration
+# PostgreSQL Image Configuration (pgvector enabled)
+# Compatible with Bitnami scripts; bundles pgvector extension
 # ------------------------------------------------------------------------------
 image:
   registry: docker.io
-  repository: bitnamilegacy/postgresql
-  tag: "16.2.0"
+  repository: bhanunexus/bitnami-postgresql-pgvector
+  tag: "16"
   pullPolicy: IfNotPresent
 
 # ------------------------------------------------------------------------------
@@ -64,6 +65,12 @@ primary:
     shared_buffers = 128MB
     work_mem = 4MB
     maintenance_work_mem = 64MB
+
+  # Auto-enable pgvector extension during initial database creation
+  initdb:
+    scripts:
+      01-init-pgvector.sql: |
+        CREATE EXTENSION IF NOT EXISTS vector;
 
 # ------------------------------------------------------------------------------
 # Prometheus Metrics Exporter (Observability)

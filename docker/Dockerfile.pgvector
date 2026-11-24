@@ -1,0 +1,20 @@
+# ==============================================================================
+# Finsights Platform - PostgreSQL 16 with pgvector extension
+# Base: bitnami/postgresql (matches Bitnami Helm Chart runtime & entrypoint)
+# ==============================================================================
+
+# Stage 1: Pull official pgvector binaries for PostgreSQL 16
+FROM pgvector/pgvector:pg16 AS pgvector-builder
+
+# Stage 2: Bitnami PostgreSQL base image
+FROM bitnamilegacy/postgresql:16.2.0
+
+USER root
+
+# Copy extension library and control/SQL definitions
+COPY --from=pgvector-builder /usr/lib/postgresql/16/lib/vector.so /opt/bitnami/postgresql/lib/
+COPY --from=pgvector-builder /usr/share/postgresql/16/extension/vector* /opt/bitnami/postgresql/share/extension/
+
+# Revert to standard Bitnami unprivileged user
+USER 1001
+
