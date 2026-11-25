@@ -248,16 +248,27 @@ extraManifests:
           securityContext:
             runAsNonRoot: true
             runAsUser: 10001
+            fsGroup: 10001
+            fsGroupChangePolicy: OnRootMismatch
             seccompProfile:
               type: RuntimeDefault
+          volumes:
+            - name: provider-keys
+              persistentVolumeClaim:
+                claimName: finsights-ai-api-provider-keys
           containers:
             - name: ai-api
-              image: ghcr.io/minhphu05/finsights-ai-service:api-latest
-              imagePullPolicy: Always
+              image: ghcr.io/minhphu05/finsights-ai-service:api-e05dfdaa3bf0f2f2d1eb14fd9e78e15d6eb7f96e
+              imagePullPolicy: IfNotPresent
               ports:
                 - name: http
                   containerPort: 8081
+              volumeMounts:
+                - name: provider-keys
+                  mountPath: /opt/finsights-ai-service/data
               env:
+                - name: AI_KEYS_FILE
+                  value: /opt/finsights-ai-service/data/provider_keys.json
                 - name: MYSQL_SOURCE_READONLY_DSN
                   value: "mysql+aiomysql://finsights_ai_ro@129.221.137.201:3306/finsights_news?charset=utf8mb4"
                 - name: MYSQL_SOURCE_TLS_CA
@@ -317,6 +328,21 @@ extraManifests:
                 limits:
                   cpu: 1
                   memory: 1536Mi
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: finsights-ai-api-provider-keys
+      namespace: orchestration
+      labels:
+        app.kubernetes.io/name: finsights-ai-api
+        app.kubernetes.io/part-of: finsights-ai-service
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: local-path
+      resources:
+        requests:
+          storage: 1Gi
   - apiVersion: v1
     kind: Service
     metadata:
