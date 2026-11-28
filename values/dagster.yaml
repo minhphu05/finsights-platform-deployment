@@ -245,6 +245,10 @@ extraManifests:
             app.kubernetes.io/part-of: finsights-ai-service
         spec:
           automountServiceAccountToken: false
+          dnsConfig:
+            options:
+              # Default lookups from node-02 to CoreDNS time out; TCP works.
+              - name: use-vc
           securityContext:
             runAsNonRoot: true
             runAsUser: 10001
