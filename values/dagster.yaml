@@ -266,7 +266,7 @@ extraManifests:
                 sizeLimit: 256Mi
           containers:
             - name: ai-api
-              image: ghcr.io/minhphu05/finsights-ai-service:api-3edb533e07b9bd3bc564149969fcce41cc240013
+              image: ghcr.io/minhphu05/finsights-ai-service:api-99a38fe8d660aa61596b256f097d33c7e8dc5d4e
               imagePullPolicy: IfNotPresent
               ports:
                 - name: http
