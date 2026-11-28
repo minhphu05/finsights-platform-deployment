@@ -256,9 +256,13 @@ extraManifests:
             - name: provider-keys
               persistentVolumeClaim:
                 claimName: finsights-ai-api-provider-keys
+            # Cache of paid rerank answers; the root filesystem is read-only.
+            - name: eval-snapshots
+              emptyDir:
+                sizeLimit: 256Mi
           containers:
             - name: ai-api
-              image: ghcr.io/minhphu05/finsights-ai-service:api-e05dfdaa3bf0f2f2d1eb14fd9e78e15d6eb7f96e
+              image: ghcr.io/minhphu05/finsights-ai-service:api-88a6fc12ffda295effb83efead7562db36277079
               imagePullPolicy: IfNotPresent
               ports:
                 - name: http
@@ -266,6 +270,8 @@ extraManifests:
               volumeMounts:
                 - name: provider-keys
                   mountPath: /opt/finsights-ai-service/data
+                - name: eval-snapshots
+                  mountPath: /opt/finsights-ai-service/evals/snapshots
               env:
                 - name: AI_KEYS_FILE
                   value: /opt/finsights-ai-service/data/provider_keys.json
@@ -299,6 +305,15 @@ extraManifests:
                     secretKeyRef:
                       name: dagster-pipeline-secrets
                       key: DEEPSEEK_API_KEY
+                      optional: true
+                # The retrieval benchmark reads the stored news chunks (read-only session).
+                - name: POSTGRES_RAG_DSN
+                  value: "postgresql+psycopg://finsights_embeddings_app@postgresql.finsights-platform.svc.cluster.local:5432/finsights_embeddings?sslmode=prefer"
+                - name: POSTGRES_EMBEDDINGS_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: finsights-embeddings-postgresql-secret
+                      key: POSTGRES_EMBEDDINGS_PASSWORD
                       optional: true
               securityContext:
                 allowPrivilegeEscalation: false
